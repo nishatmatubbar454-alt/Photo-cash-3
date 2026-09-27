@@ -1,0 +1,6 @@
+{
+  "name": "SocialCash - Social & Earning Platform",
+  "description": "Bangladeshi social and micro-earning platform featuring stories, posts, referral rewards, coin wallet, and bKash/Nagad cash out.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

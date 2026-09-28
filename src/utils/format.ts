@@ -1,68 +1,22 @@
 /**
- * Format BDT currency
+ * Format USDT Currency safely with null/undefined fallbacks
  */
-export function formatBDT(amount: number): string {
-  return `৳${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function formatUSDT(amount?: number | null, decimals: number = 3): string {
+  const num = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
+  return `$${num.toFixed(decimals)}`;
 }
 
-/**
- * Format Coins count
- */
-export function formatCoins(coins: number): string {
-  return coins.toLocaleString('en-US');
+export function formatShortUSDT(amount?: number | null): string {
+  const num = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
+  return `$${num.toFixed(2)}`;
 }
 
-/**
- * Convert numbers to Bengali digits if needed
- */
-export function toBengaliNumber(num: number | string): string {
-  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-  return String(num).replace(/[0-9]/g, (w) => bnDigits[+w]);
+export function safeNumber(val?: number | null, fallback: number = 0): number {
+  if (typeof val === 'number' && !isNaN(val)) return val;
+  return fallback;
 }
 
-/**
- * Relative time ago in Bengali
- */
-export function timeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) {
-    return 'এইমাত্র';
-  }
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} মিনিট আগে`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} ঘণ্টা আগে`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) {
-    return `${diffInDays} দিন আগে`;
-  }
-
-  const diffInWeeks = Math.floor(diffInDays / 7);
-  if (diffInWeeks < 4) {
-    return `${diffInWeeks} সপ্তাহ আগে`;
-  }
-
-  return date.toLocaleDateString('bn-BD', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-}
-
-/**
- * Mask mobile numbers for privacy (e.g. 01712***456)
- */
-export function maskPhone(phone: string): string {
-  if (!phone || phone.length < 8) return phone;
-  return phone.substring(0, 5) + '***' + phone.substring(phone.length - 3);
+export function maskAddress(addr: string): string {
+  if (!addr || addr.length < 10) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }

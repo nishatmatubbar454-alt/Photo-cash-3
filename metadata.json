@@ -1,6 +1,8 @@
 {
-  "name": "SocialCash - Social & Earning Platform",
-  "description": "Bangladeshi social and micro-earning platform featuring stories, posts, referral rewards, coin wallet, and bKash/Nagad cash out.",
+  "name": "Photo Cash 📸💸",
+  "description": "PhotoCash - Share photos, invite friends, and earn USDT with Binance withdrawal.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

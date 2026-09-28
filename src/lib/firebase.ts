@@ -1,15 +1,52 @@
-/**
- * Firebase Client Configuration & Helper
- * Supports environment variables or offline fallback mode
- */
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getDatabase, ref, set, onValue, push, update, remove } from 'firebase/database';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  onSnapshot,
+  updateDoc,
+  deleteDoc
+} from 'firebase/firestore';
 
-export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'demo-api-key',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'socialcash-demo.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'socialcash-demo',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'socialcash-demo.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '1234567890',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1234567890:web:abcdef',
+// 1. User & Wallet Database Configuration (photo-cash-30b8c)
+// Stores: User Accounts, Balance, Earnings, Withdrawals, Referral tracking
+export const userFirebaseConfig = {
+  apiKey: "AIzaSyCldRzhTjtrb8hawkpfZxgZUmdfOiDLS4Y",
+  authDomain: "photo-cash-30b8c.firebaseapp.com",
+  databaseURL: "https://photo-cash-30b8c-default-rtdb.firebaseio.com",
+  projectId: "photo-cash-30b8c",
+  storageBucket: "photo-cash-30b8c.firebasestorage.app",
+  messagingSenderId: "765815950948",
+  appId: "1:765815950948:web:ebdacf74a250a744081971",
+  measurementId: "G-JXWM0365JS"
 };
 
-export const isFirebaseConfigured = Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
+// 2. Media & Public Feed Database Configuration (photo-cash-2)
+// Stores: Public Posts, Images, Captions, Stories for multi-device feed sync
+export const mediaFirebaseConfig = {
+  apiKey: "AIzaSyDZ0aB5bZ3M-YwrESf934Ai3yEZQDsUzU4",
+  authDomain: "photo-cash-2.firebaseapp.com",
+  databaseURL: "https://photo-cash-2-default-rtdb.firebaseio.com",
+  projectId: "photo-cash-2",
+  storageBucket: "photo-cash-2.firebasestorage.app",
+  messagingSenderId: "85268729419",
+  appId: "1:85268729419:web:daa0ff56708ddcce8c47ce",
+  measurementId: "G-KXCHR3D10N"
+};
+
+// Initialize or retrieve named Firebase apps
+export const userApp = getApps().find(app => app.name === 'userApp') 
+  || initializeApp(userFirebaseConfig, 'userApp');
+
+export const mediaApp = getApps().find(app => app.name === 'mediaApp') 
+  || initializeApp(mediaFirebaseConfig, 'mediaApp');
+
+// Database references for User App
+export const userDb = getDatabase(userApp);
+export const userFirestore = getFirestore(userApp);
+
+// Database references for Media & Public Feed App
+export const mediaDb = getDatabase(mediaApp);
+export const mediaFirestore = getFirestore(mediaApp);

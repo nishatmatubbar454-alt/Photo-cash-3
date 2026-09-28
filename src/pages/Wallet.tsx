@@ -1,254 +1,170 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Coins,
-  ArrowUpRight,
-  Gift,
-  Users,
-  PlaySquare,
+  ArrowLeft,
+  ChevronDown,
+  CreditCard,
   History,
-  CheckCircle,
+  TrendingUp,
+  Users,
+  Headphones,
+  MessageCircle,
   Clock,
-  XCircle,
-  Sparkles,
-  ChevronRight
+  Send,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { formatBDT, formatCoins, timeAgo } from '../utils/format';
 
 export const Wallet: React.FC = () => {
-  const { currentUser, transactions, setActiveTab, claimDailyBonus, addCoins } = useAuth();
+  const { currentUser, setActiveTab } = useAuth();
   const { settings } = useSettings();
-  const [bonusStatus, setBonusStatus] = useState<string | null>(null);
-
-  const today = new Date().toDateString();
-  const hasClaimedToday = currentUser.lastDailyClaim === today;
-
-  const handleClaimDaily = () => {
-    const res = claimDailyBonus();
-    setBonusStatus(res.message);
-    setTimeout(() => setBonusStatus(null), 3000);
-  };
-
-  const handleWatchAd = () => {
-    addCoins(settings.adRewardCoins, `ভিডিও বিজ্ঞাপন দেখে +${settings.adRewardCoins} কয়েন অর্জন! 🎬`, 'ad_reward');
-    setBonusStatus(`+${settings.adRewardCoins} কয়েন আপনার অ্যাকাউন্টে যোগ করা হয়েছে!`);
-    setTimeout(() => setBonusStatus(null), 3000);
-  };
-
-  // Recent 6 transactions
-  const recentTransactions = transactions.slice(0, 6);
 
   return (
-    <div className="flex-1 p-4 pb-20 space-y-4">
-      {/* Wallet Balance Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-rose-950/40 to-amber-950/50 border border-rose-500/30 p-5 shadow-2xl">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <span className="text-xs font-semibold text-rose-300 uppercase tracking-wider">
-              বর্তমান ব্যালেন্স
-            </span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <h1 className="text-3xl font-black text-white tracking-tight">
-                {formatBDT(currentUser.balanceBDT)}
-              </h1>
-              <span className="text-xs font-bold text-emerald-400">BDT</span>
-            </div>
-          </div>
-          <div className="px-3 py-1.5 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
-            <Coins className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-extrabold text-amber-300">
-              {formatCoins(currentUser.coins)} Coins
-            </span>
-          </div>
-        </div>
+    <div className="flex-1 bg-[#f8fafc] p-3.5 pb-20 space-y-3 font-sans">
+      {/* Top Header (Exact Screenshot 4) */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setActiveTab('home')}
+          className="w-8 h-8 rounded-full bg-white border border-slate-100 shadow-xs flex items-center justify-center text-slate-800"
+        >
+          <ArrowLeft className="w-4 h-4 stroke-[2.2]" />
+        </button>
 
-        {/* Rate info */}
-        <div className="flex items-center justify-between text-xs py-2 px-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-300 mb-5">
-          <span>এক্সচেঞ্জ রেট:</span>
-          <span className="font-bold text-amber-400">১০০০ কয়েন = ৳{settings.coinRate.toFixed(2)}</span>
+        <h2 className="text-base font-black text-slate-900">Wallet</h2>
+
+        <div className="flex items-center gap-1 bg-white border border-slate-200/80 rounded-full px-2.5 py-1 text-[11px] font-bold text-slate-800 shadow-xs cursor-pointer">
+          <span>USDT</span>
+          <ChevronDown className="w-3 h-3 text-slate-500" />
+        </div>
+      </div>
+
+      {/* Balance Hero Card (Exact Screenshot 4) */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs text-center space-y-3">
+        <div>
+          <span className="text-[11px] font-bold text-slate-400">Total Earnings</span>
+          <h1 className="text-3xl font-black text-slate-900 mt-0.5 tracking-tight">
+            ${(currentUser?.balanceUSDT ?? 0).toFixed(3)}
+          </h1>
+          <span className="text-[10px] text-slate-400 mt-0.5 block">
+            Lifetime ${(currentUser?.lifetimeEarningsUSDT ?? 0).toFixed(3)}
+          </span>
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
           <button
             onClick={() => setActiveTab('cashout')}
-            className="py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-rose-500/20 active:scale-95 transition"
+            className="py-2.5 px-3 rounded-full bg-gradient-to-r from-[#ff4b3e] to-[#ff7438] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition"
           >
-            <ArrowUpRight className="w-4 h-4 stroke-[3]" />
-            <span>টাকা উত্তোলন (Cash Out)</span>
+            <CreditCard className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Cash Out</span>
           </button>
 
           <button
             onClick={() => setActiveTab('payments')}
-            className="py-3 px-4 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition"
+            className="py-2.5 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center gap-1.5 active:scale-95 transition"
           >
-            <History className="w-4 h-4 text-slate-400" />
-            <span>পেমেন্ট হিস্ট্রি</span>
+            <History className="w-3.5 h-3.5 stroke-[2.2]" />
+            <span>Payments</span>
           </button>
         </div>
       </div>
 
-      {bonusStatus && (
-        <div className="p-3 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs text-center font-bold animate-in fade-in">
-          {bonusStatus}
-        </div>
-      )}
-
-      {/* Ways to Earn section */}
-      <div>
-        <div className="flex items-center justify-between mb-3 px-1">
-          <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>কয়েন আয়ের উপায় (Ways to Earn)</span>
+      {/* 2 Stats Cards Row (Exact Screenshot 4) */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {/* Today's earnings */}
+        <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs space-y-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500">Today's earnings</span>
+            <div className="w-5 h-5 rounded-md bg-orange-50 text-orange-500 flex items-center justify-center">
+              <TrendingUp className="w-3 h-3" />
+            </div>
+          </div>
+          <h3 className="text-lg font-black text-slate-900 pt-0.5">
+            ${(currentUser?.todayEarningsUSDT ?? 0).toFixed(3)}
           </h3>
+          <span className="text-[10px] text-slate-400 block">
+            {currentUser?.todayEarningPostsCount ?? 0} earning posts
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* Daily bonus */}
-          <div
-            onClick={hasClaimedToday ? undefined : handleClaimDaily}
-            className={`p-3.5 rounded-2xl border transition ${
-              hasClaimedToday
-                ? 'bg-slate-900/60 border-slate-800 opacity-70 cursor-default'
-                : 'bg-slate-900 border-purple-500/30 hover:border-purple-500/60 cursor-pointer active:scale-95'
-            }`}
-          >
-            <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-2">
-              <Gift className="w-4 h-4" />
+        {/* Total Refar */}
+        <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs space-y-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500">Total Refar</span>
+            <div className="w-5 h-5 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center">
+              <Users className="w-3 h-3" />
             </div>
-            <h4 className="text-xs font-bold text-slate-200">দৈনিক বোনাস</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              {hasClaimedToday ? 'আজকেরটা নিয়েছেন' : `+${settings.dailyBonusCoins} কয়েন ফ্রি`}
-            </p>
           </div>
-
-          {/* Watch Ad */}
-          <div
-            onClick={handleWatchAd}
-            className="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/30 hover:border-amber-500/60 cursor-pointer active:scale-95 transition"
-          >
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2">
-              <PlaySquare className="w-4 h-4" />
-            </div>
-            <h4 className="text-xs font-bold text-slate-200">অ্যাড দেখুন</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              প্রতিটি অ্যাডে +{settings.adRewardCoins} কয়েন
-            </p>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <Users className="w-4 h-4 text-sky-500 fill-sky-500" />
+            <h3 className="text-lg font-black text-slate-900">
+              {currentUser?.totalRefer ?? 0}
+            </h3>
           </div>
-
-          {/* Refer friends */}
-          <div
-            onClick={() => setActiveTab('refer')}
-            className="p-3.5 rounded-2xl bg-slate-900 border border-sky-500/30 hover:border-sky-500/60 cursor-pointer active:scale-95 transition"
-          >
-            <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center mb-2">
-              <Users className="w-4 h-4" />
-            </div>
-            <h4 className="text-xs font-bold text-slate-200">বন্ধুদের রেফার</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              প্রতি রেফারে +{settings.referRewardCoins} কয়েন
-            </p>
-          </div>
-
-          {/* Create Post */}
-          <div
-            onClick={() => setActiveTab('create')}
-            className="p-3.5 rounded-2xl bg-slate-900 border border-rose-500/30 hover:border-rose-500/60 cursor-pointer active:scale-95 transition"
-          >
-            <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center mb-2">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <h4 className="text-xs font-bold text-slate-200">পোস্ট তৈরি</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              প্রতি পোস্টে +{settings.postRewardCoins} কয়েন
-            </p>
-          </div>
+          <span className="text-[10px] text-slate-400 block">
+            {Math.max(0, (currentUser?.requiredRefer ?? 18) - (currentUser?.totalRefer ?? 0))} more needed
+          </span>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div>
-        <div className="flex items-center justify-between mb-3 px-1">
-          <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-1.5">
-            <History className="w-4 h-4 text-slate-400" />
-            <span>সাম্প্রতিক লেনদেন (Transactions)</span>
-          </h3>
-          <button
-            onClick={() => setActiveTab('payments')}
-            className="text-xs text-rose-400 hover:text-rose-300 font-bold flex items-center"
-          >
-            <span>সব দেখুন</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+      {/* Requirement Notice Box */}
+      <div className="bg-[#fff1f2] border border-[#fecdd3] rounded-2xl p-3 space-y-1">
+        <h4 className="text-[11px] font-black text-[#e11d48] flex items-center gap-1">
+          <span>⚠️ {settings?.requiredRefersForWithdraw ?? 18} রেফার ছাড়া withdraw হবে না</span>
+        </h4>
+        <p className="text-[10px] text-slate-700 leading-relaxed font-medium">
+          Withdraw করতে হলে অবশ্যই <strong>${(settings?.minCashOutUSDT ?? 5.0).toFixed(2)} USDT</strong> ব্যালেন্স এবং <strong>{settings?.requiredRefersForWithdraw ?? 18} টি রেফার</strong> থাকতে হবে। দুইটি শর্ত পূরণ না হলে cash out রিকুয়েস্ট গ্রহণ করা হবে না।
+        </p>
+      </div>
 
-        <div className="space-y-2">
-          {recentTransactions.length === 0 ? (
-            <div className="p-6 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800 text-xs">
-              এখনও কোনো লেনদেন সম্পন্ন হয়নি।
+      {/* Support Section (Exact Screenshot 4) */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-black text-slate-900 px-1">Support</h3>
+
+        <div className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#ff4b3e] to-[#ff7438] text-white flex items-center justify-center shadow-xs">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <span>Chat with support</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-600 font-extrabold flex items-center gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
+                    Online
+                  </span>
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Withdrawals • balance • account
+                </p>
+              </div>
             </div>
-          ) : (
-            recentTransactions.map((tx) => {
-              const isCashout = tx.type === 'cashout';
+          </div>
 
-              return (
-                <div
-                  key={tx.id}
-                  className="p-3 rounded-2xl bg-slate-900 border border-slate-800/80 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                        isCashout
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      }`}
-                    >
-                      {isCashout ? 'উত্তোলন' : 'আয়'}
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-slate-200">
-                        {isCashout
-                          ? `${tx.method?.toUpperCase()} ক্যাশআউট`
-                          : tx.note || 'রিওয়ার্ড বোনাস'}
-                      </h5>
-                      <span className="text-[10px] text-slate-400">
-                        {timeAgo(tx.createdAt)}
-                      </span>
-                    </div>
-                  </div>
+          {/* Quick Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button className="py-2 px-3 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 transition">
+              <MessageCircle className="w-3 h-3" />
+              <span>Live agent</span>
+            </button>
+            <button className="py-2 px-3 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 transition">
+              <Clock className="w-3 h-3" />
+              <span>Quick replies</span>
+            </button>
+          </div>
 
-                  <div className="text-right">
-                    <div
-                      className={`text-xs font-extrabold ${
-                        isCashout ? 'text-rose-400' : 'text-emerald-400'
-                      }`}
-                    >
-                      {isCashout ? '-' : '+'}৳{tx.amountBDT.toFixed(2)}
-                    </div>
-                    <div className="flex items-center justify-end gap-1 mt-0.5">
-                      {tx.status === 'approved' && (
-                        <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
-                          <CheckCircle className="w-3 h-3" /> সফল
-                        </span>
-                      )}
-                      {tx.status === 'pending' && (
-                        <span className="text-[10px] text-amber-400 flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" /> অপেক্ষমান
-                        </span>
-                      )}
-                      {tx.status === 'rejected' && (
-                        <span className="text-[10px] text-rose-400 flex items-center gap-0.5">
-                          <XCircle className="w-3 h-3" /> বাতিল
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+          {/* Telegram Support Button */}
+          <a
+            href={currentUser.botReferLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 rounded-full bg-gradient-to-r from-[#ff4b3e] to-[#ff7438] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Telegram Support</span>
+          </a>
         </div>
       </div>
     </div>

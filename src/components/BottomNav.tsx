@@ -7,32 +7,70 @@ export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab } = useAuth();
 
   const navItems = [
-    { id: 'home' as NavigationTab, label: 'হোম', icon: Home },
-    { id: 'refer' as NavigationTab, label: 'রেফার', icon: Users, badge: 'বোনাস' },
-    { id: 'create' as NavigationTab, label: 'পোস্ট', icon: Plus, isAction: true },
-    { id: 'wallet' as NavigationTab, label: 'ওয়ালেট', icon: Wallet },
-    { id: 'profile' as NavigationTab, label: 'প্রোফাইল', icon: UserIcon },
+    {
+      id: 'home' as NavigationTab,
+      label: 'Home',
+      icon: Home,
+      activeCircle: 'bg-gradient-to-tr from-[#ff385c] to-[#ff7745] text-white shadow-sm shadow-rose-500/25',
+      activeText: 'text-[#ff385c] font-black',
+    },
+    {
+      id: 'refer' as NavigationTab,
+      label: 'Refer',
+      icon: Users,
+      badge: '0.5$',
+      activeCircle: 'bg-gradient-to-tr from-[#00b4d8] to-[#0077b6] text-white shadow-sm shadow-sky-500/25',
+      activeText: 'text-[#0077b6] font-black',
+    },
+    {
+      id: 'create' as NavigationTab,
+      label: 'Create',
+      icon: Plus,
+      isCenterSpecial: true,
+    },
+    {
+      id: 'wallet' as NavigationTab,
+      label: 'Wallet',
+      icon: Wallet,
+      activeCircle: 'bg-gradient-to-tr from-[#f59e0b] to-[#ea580c] text-white shadow-sm shadow-amber-500/25',
+      activeText: 'text-[#ea580c] font-black',
+    },
+    {
+      id: 'profile' as NavigationTab,
+      label: 'Profile',
+      icon: UserIcon,
+      activeCircle: 'bg-gradient-to-tr from-[#8b5cf6] to-[#ec4899] text-white shadow-sm shadow-purple-500/25',
+      activeText: 'text-[#8b5cf6] font-black',
+    },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-1 max-w-md mx-auto shadow-2xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1 max-w-md mx-auto shadow-[0_-2px_15px_rgba(0,0,0,0.05)]">
       <div className="flex items-center justify-around relative">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive =
+            activeTab === item.id ||
+            (item.id === 'wallet' && (activeTab === 'cashout' || activeTab === 'payments'));
 
-          if (item.isAction) {
+          // Special Center Create Button
+          if (item.isCenterSpecial) {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className="flex flex-col items-center justify-center -top-4 relative group active:scale-90 transition-transform"
-                title="নতুন পোস্ট বা স্টোরি তৈরি করুন"
+                onClick={() => setActiveTab('create')}
+                className="flex flex-col items-center justify-center -top-2.5 relative group active:scale-90 transition-transform duration-200 select-none"
+                title="Create post"
               >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 via-rose-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/30 ring-4 ring-slate-900 group-hover:scale-105 transition-transform">
-                  <Icon className="w-6 h-6 stroke-[2.5]" />
+                {/* Elevated 3D Circular Badge */}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#ff1361] via-[#ff5e3a] to-[#ff9900] flex items-center justify-center text-white shadow-md shadow-orange-500/30 ring-3 ring-white group-hover:scale-105 transition-all">
+                  <Icon className="w-5 h-5 stroke-[2.8]" />
                 </div>
-                <span className="text-[10px] font-semibold text-slate-300 mt-1">পোস্ট</span>
+
+                {/* Create Label */}
+                <span className="text-[9.5px] font-black text-[#ff5e3a] mt-0.5 leading-none">
+                  {item.label}
+                </span>
               </button>
             );
           }
@@ -41,24 +79,34 @@ export const BottomNav: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all relative ${
-                isActive ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className="flex flex-col items-center justify-center py-0.5 px-1 transition-all select-none relative group active:scale-90"
             >
-              <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-                {item.badge && (
-                  <span className="absolute -top-1.5 -right-3 text-[8px] bg-rose-500 text-white px-1 py-0.2 rounded-full font-extrabold uppercase animate-pulse">
-                    {item.badge}
-                  </span>
-                )}
+              {/* Badge if present */}
+              {item.badge && !isActive && (
+                <span className="absolute -top-1 right-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[7.5px] font-black px-1.5 py-0.2 rounded-full shadow-xs animate-pulse z-10">
+                  {item.badge}
+                </span>
+              )}
+
+              {/* Compact Round/Circular Icon Background */}
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  isActive
+                    ? `${item.activeCircle} scale-105`
+                    : 'bg-slate-100/90 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-700'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
               </div>
-              <span className={`text-[10px] mt-1 ${isActive ? 'text-rose-400 font-bold' : 'text-slate-400'}`}>
+
+              {/* Text label underneath */}
+              <span
+                className={`text-[9.5px] mt-0.5 font-sans leading-none tracking-tight transition-colors ${
+                  isActive ? item.activeText : 'font-semibold text-slate-400 group-hover:text-slate-600'
+                }`}
+              >
                 {item.label}
               </span>
-              {isActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-0.5"></span>
-              )}
             </button>
           );
         })}

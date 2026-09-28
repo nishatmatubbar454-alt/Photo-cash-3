@@ -1,251 +1,305 @@
-import React, { useState, useRef } from 'react';
-import { Image, Sparkles, Send, X, Camera, Plus, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Image as ImageIcon, X, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { processImageUpload } from '../utils/upload';
+import { uploadToImgBB } from '../utils/upload';
+import { safeNumber } from '../utils/format';
 
 export const Create: React.FC = () => {
-  const { addPost, addStory, currentUser } = useAuth();
+  const { currentUser, addPost, addStory, setActiveTab, draftImage, setDraftImage } = useAuth();
   const { settings } = useSettings();
 
-  const [mode, setMode] = useState<'post' | 'story'>('post');
-  const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [tags, setTags] = useState<string[]>(['SocialCash']);
+  const [caption, setCaption] = useState('');
+  const [imageUrl, setImageUrl] = useState(draftImage || '');
+  const [postType, setPostType] = useState<'feed' | 'story'>('feed');
+  const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [autoOpenCountdown, setAutoOpenCountdown] = useState<number | null>(2);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadPromiseRef = useRef<Promise<string> | null>(null);
+  const hasAutoPromptedRef = useRef(false);
 
-  const sampleImages = [
-    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80',
-  ];
+  // Sync draftImage if set
+  useEffect(() => {
+    if (draftImage) {
+      setImageUrl(draftImage);
+    }
+  }, [draftImage]);
 
-  const popularTags = ['Bangladesh', 'Nature', 'Earning', 'Motivation', 'LifeUpdate', 'Dhaka'];
+  // When Create page opens, wait exactly 2 seconds, then automatically trigger device gallery
+  useEffect(() => {
+    if (!imageUrl && !hasAutoPromptedRef.current) {
+      hasAutoPromptedRef.current = true;
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      // 2-second countdown for gallery opening
+      const countdownInterval = setInterval(() => {
+        setAutoOpenCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(countdownInterval);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      const timer = setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+        }
+        setAutoOpenCountdown(null);
+      }, 2000);
+
+      return () => {
+        clearTimeout(timer);
+        clearInterval(countdownInterval);
+      };
+    } else {
+      setAutoOpenCountdown(null);
+    }
+  }, [imageUrl]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // 1. Show immediate high-quality local preview so the user sees their photo instantaneously
+      const localPreviewUrl = URL.createObjectURL(file);
+      setImageUrl(localPreviewUrl);
+      setIsUploading(true);
+
+      // 2. Seamlessly upload in background without exposing any external service
+      const uploadPromise = uploadToImgBB(file, settings.imageHostingApiKey)
+        .then((remoteUrl) => {
+          setImageUrl(remoteUrl);
+          setDraftImage(remoteUrl);
+          setIsUploading(false);
+          return remoteUrl;
+        })
+        .catch((err) => {
+          console.warn('Image processing completed with local asset', err);
+          setIsUploading(false);
+          return localPreviewUrl;
+        });
+
+      uploadPromiseRef.current = uploadPromise;
+    }
+  };
+
+  const handlePost = async () => {
+    if (postType === 'story') {
+      if (!imageUrl) return;
+      setIsSubmitting(true);
       try {
-        const processed = await processImageUpload(file);
-        setImageUrl(processed);
-      } catch (err) {
-        console.error(err);
+        let finalUrl = imageUrl;
+        if (isUploading && uploadPromiseRef.current) {
+          finalUrl = await uploadPromiseRef.current;
+        }
+        addStory(finalUrl, caption.trim() || undefined);
+        setDraftImage(null);
+      } finally {
+        setIsSubmitting(false);
+        setActiveTab('home');
       }
+      return;
     }
-  };
 
-  const toggleTag = (tag: string) => {
-    if (tags.includes(tag)) {
-      setTags(tags.filter((t) => t !== tag));
-    } else {
-      setTags([...tags, tag]);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'post' && !content.trim() && !imageUrl) return;
-    if (mode === 'story' && !imageUrl) return;
-
+    if (!caption.trim() && !imageUrl) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      if (mode === 'post') {
-        addPost(content, imageUrl || undefined, tags);
-      } else {
-        addStory(imageUrl, content || undefined);
+    try {
+      let finalUrl = imageUrl;
+      if (isUploading && uploadPromiseRef.current) {
+        finalUrl = await uploadPromiseRef.current;
       }
+      addPost(caption, finalUrl || undefined);
+      setDraftImage(null);
+    } finally {
       setIsSubmitting(false);
-    }, 600);
+      setActiveTab('home');
+    }
   };
+
+  const isCanPost =
+    postType === 'story'
+      ? !!imageUrl
+      : caption.trim().length > 0 || imageUrl.length > 0;
+
+  const earnPerPost = safeNumber(currentUser?.earnPerPost, settings?.earnPerPostUSDT ?? 0.02);
+  const earnIntervalMin = currentUser?.earnIntervalMin ?? settings?.earnTimerMin ?? 10;
+  const earnPassiveAmount = settings?.earnPassiveUSDT ?? 0.009;
 
   return (
-    <div className="flex-1 p-4 pb-20">
-      {/* Page Title & Switcher */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-100">
-            {mode === 'post' ? 'নতুন পোস্ট তৈরি করুন' : 'নতুন স্টোরি দিন'}
+    <div className="flex-1 bg-[#f8fafc] pb-20 font-sans min-h-screen flex flex-col">
+      {/* Top Header */}
+      <div className="bg-white border-b border-slate-100 px-3.5 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setActiveTab('home')}
+            className="p-1 text-slate-800 hover:text-slate-900"
+          >
+            <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
+          </button>
+          <h2 className="text-sm font-extrabold text-slate-900">
+            {postType === 'story' ? 'Create Story' : 'Create post'}
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {mode === 'post' 
-              ? `পোস্ট করলেই পাবেন +${settings.postRewardCoins} ফ্রি কয়েন!`
-              : 'স্টোরি শেয়ার করে সবার সাথে যুক্ত থাকুন'}
-          </p>
         </div>
 
-        {/* Post/Story Toggle */}
-        <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+        <button
+          onClick={handlePost}
+          disabled={!isCanPost || isSubmitting}
+          className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
+            isCanPost && !isSubmitting
+              ? 'bg-[#ff5938] text-white shadow-xs hover:bg-[#e04526] active:scale-95'
+              : 'bg-slate-200/80 text-slate-400 cursor-not-allowed'
+          }`}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>প্রসেসিং হচ্ছে...</span>
+            </>
+          ) : postType === 'story' ? (
+            'Share Story'
+          ) : (
+            'Post'
+          )}
+        </button>
+      </div>
+
+      <div className="p-3.5 space-y-3 flex-1">
+        {/* Post Type Selector (Feed post vs Story) */}
+        <div className="grid grid-cols-2 gap-2 bg-slate-200/60 p-1 rounded-2xl">
           <button
             type="button"
-            onClick={() => setMode('post')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-              mode === 'post' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+            onClick={() => setPostType('feed')}
+            className={`py-2 rounded-xl font-black text-xs transition shadow-xs ${
+              postType === 'feed'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            পোস্ট
+            Feed post
           </button>
           <button
             type="button"
-            onClick={() => setMode('story')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-              mode === 'story' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+            onClick={() => setPostType('story')}
+            className={`py-2 rounded-xl font-black text-xs transition shadow-xs flex items-center justify-center gap-1.5 ${
+              postType === 'story'
+                ? 'bg-gradient-to-r from-[#ff416c] to-[#ff4b2b] text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            স্টোরি
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Story (24h)</span>
           </button>
         </div>
-      </div>
 
-      {/* Reward Announcement Banner */}
-      <div className="mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
-          <Sparkles className="w-4 h-4" />
-        </div>
-        <p className="text-xs text-amber-200">
-          পোস্ট পাবলিশ হওয়ার সাথে সাথেই আপনার ওয়ালেটে <strong className="text-amber-300">+{settings.postRewardCoins} কয়েন</strong> জমা হয়ে যাবে।
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Author preview */}
-        <div className="flex items-center gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+        {/* Author Header */}
+        <div className="flex items-center gap-2.5">
           <img
             src={currentUser.avatar}
             alt={currentUser.name}
-            className="w-10 h-10 rounded-full object-cover border border-slate-700"
+            className="w-10 h-10 rounded-full object-cover border border-slate-200"
           />
           <div>
-            <h4 className="text-xs font-bold text-slate-200">{currentUser.name}</h4>
-            <span className="text-[10px] text-emerald-400 font-medium">পাবলিক পোস্ট</span>
+            <h3 className="font-extrabold text-xs text-slate-900">{currentUser.name}</h3>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+              {postType === 'story'
+                ? '২৪ ঘণ্টার জন্য আপনার স্টোরিতে শেয়ার হবে'
+                : `ইনকাম: $${earnPerPost.toFixed(2)} প্রতি পোস্ট + $${earnPassiveAmount.toFixed(3)} প্রতি ${earnIntervalMin} মিনিটে`}
+            </p>
           </div>
         </div>
 
-        {/* Textarea */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 focus-within:border-rose-500/60 transition">
+        {/* Caption Box */}
+        <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs space-y-1.5">
           <textarea
+            rows={postType === 'story' ? 2 : 3}
             placeholder={
-              mode === 'post'
-                ? 'আপনার মনে কী আছে লিখুন? (শেয়ার করুন অভিজ্ঞতা, আয় বা সুন্দর কোনো মুহূর্ত)...'
-                : 'স্টোরির জন্য ক্যাপশন লিখুন...'
+              postType === 'story'
+                ? 'স্টোরির সাথে কোনো ক্যাপশন লিখতে চাইলে লিখুন...'
+                : 'Write a caption... (৬০ অক্ষরের বেশি হলে see more.. থাকবে)'
             }
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={mode === 'post' ? 4 : 2}
-            className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none resize-none leading-relaxed"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            className="w-full bg-transparent text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
           />
-          <div className="text-right text-[10px] text-slate-500 pt-1">
-            {content.length} অক্ষর
+
+          <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-slate-50">
+            <span>
+              {caption.length > 60 ? (
+                <span className="text-amber-600 font-bold">
+                  {caption.length} chars (will show 'see more..')
+                </span>
+              ) : (
+                <span>{caption.length}/60 chars</span>
+              )}
+            </span>
+
+            <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>পাবলিক ফিডে সিঙ্ক সক্রিয়</span>
+            </span>
           </div>
         </div>
 
-        {/* Image preview / uploader */}
-        <div>
-          <label className="block text-xs font-bold text-slate-300 mb-2">
-            ছবি যুক্ত করুন (Image)
-          </label>
+        {/* Hidden Native File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          className="hidden"
+        />
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept="image/*"
-            className="hidden"
-          />
+        {/* Image Preview & Upload Container */}
+        {imageUrl ? (
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[4/5] max-h-80 flex items-center justify-center mx-auto w-full shadow-inner">
+            <img
+              src={imageUrl}
+              alt="Uploaded media"
+              className="w-full h-full object-contain"
+            />
 
-          {imageUrl ? (
-            <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 max-h-64 flex items-center justify-center">
-              <img
-                src={imageUrl}
-                alt="Selected"
-                className="w-full h-auto max-h-64 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => setImageUrl('')}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-800 hover:border-rose-500/50 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-900/40 group"
+            {/* Seamless in-app processing badge */}
+            {isUploading && (
+              <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md border border-white/20 text-white rounded-full px-3 py-1 text-[10px] font-bold flex items-center gap-1.5 shadow-md">
+                <Loader2 className="w-3 h-3 animate-spin text-[#ff7438]" />
+                <span>ছবি অপ্টিমাইজ হচ্ছে...</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setImageUrl('');
+                setDraftImage(null);
+                uploadPromiseRef.current = null;
+              }}
+              className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center"
+              title="Remove photo"
             >
-              <div className="w-12 h-12 rounded-2xl bg-slate-800 group-hover:bg-rose-500/20 text-slate-400 group-hover:text-rose-400 mx-auto flex items-center justify-center transition mb-2">
-                <Camera className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-semibold text-slate-300">ডিভাইস থেকে ছবি আপলোড করুন</p>
-              <p className="text-[10px] text-slate-500 mt-1">PNG, JPG অথবা WEBP ফাইল সাপোর্টেড</p>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#ff5938] transition shadow-xs group relative overflow-hidden"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#ff5938] flex items-center justify-center mb-2.5 group-hover:scale-105 transition">
+              <ImageIcon className="w-6 h-6 stroke-[1.8]" />
             </div>
-          )}
-
-          {/* Preset image suggestions */}
-          {!imageUrl && (
-            <div className="mt-3">
-              <span className="text-[11px] text-slate-400 mb-1.5 block">অথবা নমুনা ছবি বেছে নিন:</span>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {sampleImages.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt="Sample"
-                    onClick={() => setImageUrl(img)}
-                    className="w-14 h-14 rounded-xl object-cover border border-slate-800 hover:border-rose-500 cursor-pointer flex-shrink-0 transition"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Tags (for posts) */}
-        {mode === 'post' && (
-          <div>
-            <label className="block text-xs font-bold text-slate-300 mb-2">
-              হ্যাশট্যাগ যুক্ত করুন
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {popularTags.map((tag) => {
-                const active = tags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1 ${
-                      active
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                        : 'bg-slate-800/80 text-slate-400 border border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    <span>#{tag}</span>
-                    {active && <Check className="w-3 h-3 text-rose-400" />}
-                  </button>
-                );
-              })}
-            </div>
+            <h4 className="text-xs font-black text-slate-800">গ্যালারি থেকে ফটো নির্বাচন করুন</h4>
+            <p className="text-[10px] text-slate-400 mt-1">
+              {autoOpenCountdown !== null ? (
+                <span className="text-[#ff5938] font-bold animate-pulse">
+                  {autoOpenCountdown} সেকেন্ডে স্বয়ংক্রিয়ভাবে গ্যালারি ওপেন হচ্ছে...
+                </span>
+              ) : (
+                'ট্যাপ করে আপনার ডিভাইস থেকে ছবি আপলোড করুন'
+              )}
+            </p>
           </div>
         )}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isSubmitting || (mode === 'post' && !content.trim() && !imageUrl) || (mode === 'story' && !imageUrl)}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-amber-500 hover:from-rose-600 hover:to-amber-600 disabled:opacity-50 text-white font-extrabold text-sm shadow-xl shadow-rose-500/20 flex items-center justify-center gap-2 active:scale-95 transition"
-        >
-          {isSubmitting ? (
-            <span>পাবলিশ হচ্ছে...</span>
-          ) : (
-            <>
-              <Send className="w-4 h-4 translate-x-0.5" />
-              <span>{mode === 'post' ? 'পোস্ট করুন এবং কয়েন নিন' : 'স্টোরি শেয়ার করুন'}</span>
-            </>
-          )}
-        </button>
-      </form>
+      </div>
     </div>
   );
 };

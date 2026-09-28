@@ -1,203 +1,149 @@
 import React, { useState } from 'react';
-import {
-  Users,
-  Copy,
-  Check,
-  Share2,
-  Sparkles,
-  Gift,
-  Coins,
-  ArrowRight,
-  Send,
-  MessageSquare
-} from 'lucide-react';
+import { Copy, Check, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 export const Refer: React.FC = () => {
   const { currentUser } = useAuth();
   const { settings } = useSettings();
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [activeTabSub, setActiveTabSub] = useState<'overview' | 'level1'>('overview');
 
-  const referLink = `${window.location.origin}?ref=${currentUser.referralCode}`;
+  const botLink = currentUser.botReferLink;
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(currentUser.referralCode);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(botLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(referLink);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  const shareWhatsApp = () => {
+  const handleShareTelegram = () => {
     const text = encodeURIComponent(
-      `🔥 SocialCash এ জয়েন করে প্রতিদিন পোস্ট ও লাইক দিয়ে বিকাশ/নগদে টাকা ইনকাম করুন! আমার রেফারেল কোড: ${currentUser.referralCode} অথবা লিংকে ক্লিক করুন: ${referLink}`
+      `🎉 PhotoCash এ জয়েন করে প্রতিদিন ফটো পোস্ট ও লাইক দিয়ে USDT ইনকাম করুন! $${(settings?.referBonusUSDT ?? 0.50).toFixed(2)} বোনাস পেতে লিংকে ক্লিক করুন:`
     );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${text}`, '_blank');
   };
-
-  const shareTelegram = () => {
-    const text = encodeURIComponent(
-      `🔥 SocialCash - লাইক ও পোস্ট করে আয় করুন! রেফারেল কোড: ${currentUser.referralCode}\n${referLink}`
-    );
-    window.open(`https://t.me/share/url?url=${referLink}&text=${text}`, '_blank');
-  };
-
-  // Sample invited members
-  const invitedList = [
-    { name: 'Hasan Mahmud', date: '২ দিন আগে', reward: settings.referRewardCoins },
-    { name: 'Rifat Islam', date: '৩ দিন আগে', reward: settings.referRewardCoins },
-    { name: 'Sadia Sultana', date: '৫ দিন আগে', reward: settings.referRewardCoins },
-  ];
 
   return (
-    <div className="flex-1 p-4 pb-20 space-y-4">
-      {/* Hero Banner */}
-      <div className="p-5 rounded-3xl bg-gradient-to-br from-indigo-900/60 via-purple-900/60 to-rose-900/60 border border-purple-500/30 text-center relative overflow-hidden shadow-2xl">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-slate-950 mx-auto shadow-xl shadow-rose-500/20 mb-3">
-          <Users className="w-7 h-7" />
+    <div className="flex-1 bg-[#f8fafc] p-3.5 pb-20 space-y-2.5 font-sans">
+      {/* 3D Invite Banner Card (Exact Screenshot 2) */}
+      <div className="bg-white rounded-3xl p-2 border border-slate-100 shadow-xs overflow-hidden flex flex-col items-center">
+        <img
+          src="/src/assets/images/invite_friends_banner_1790528531778.jpg"
+          alt="Invite Your Friend"
+          className="w-full h-auto max-h-52 object-contain rounded-2xl"
+        />
+      </div>
+
+      {/* 4 Stats Cards in 1 Row (Exact Screenshot 2) */}
+      <div className="grid grid-cols-4 gap-1.5">
+        <div className="bg-white rounded-2xl p-2 text-center border border-slate-100 shadow-xs">
+          <span className="text-[9px] font-extrabold text-[#f97316] tracking-tight block">
+            L1 TOTAL
+          </span>
+          <span className="text-sm font-black text-slate-900 mt-0.5 block">
+            {currentUser.totalRefer}
+          </span>
         </div>
-        <h2 className="text-xl font-black text-white">বন্ধুদের আমন্ত্রণ জানান ও আয় করুন</h2>
-        <p className="text-xs text-purple-200 mt-1 max-w-xs mx-auto">
-          প্রতিটি সফল রেফারে আপনি পাবেন <strong className="text-amber-300">+{settings.referRewardCoins} কয়েন</strong> ফ্রি বোনাস!
+
+        <div className="bg-white rounded-2xl p-2 text-center border border-slate-100 shadow-xs">
+          <span className="text-[9px] font-extrabold text-[#16a34a] tracking-tight block">
+            L1 ACTIVE
+          </span>
+          <span className="text-sm font-black text-slate-900 mt-0.5 block">
+            {currentUser.activeRefer}
+          </span>
+        </div>
+
+        <div className="bg-white rounded-2xl p-2 text-center border border-slate-100 shadow-xs">
+          <span className="text-[9px] font-extrabold text-[#2563eb] tracking-tight block">
+            BONUS
+          </span>
+          <span className="text-sm font-black text-slate-900 mt-0.5 block">
+            ${(currentUser?.referBonusUSDT ?? settings?.referBonusUSDT ?? 0.50).toFixed(2)}
+          </span>
+        </div>
+
+        <div className="bg-white rounded-2xl p-2 text-center border border-slate-100 shadow-xs">
+          <span className="text-[9px] font-extrabold text-[#9333ea] tracking-tight block">
+            EARNED
+          </span>
+          <span className="text-sm font-black text-slate-900 mt-0.5 block">
+            ${((currentUser?.totalRefer ?? 0) * (currentUser?.referBonusUSDT ?? settings?.referBonusUSDT ?? 0.50)).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {/* Alert Notice Pill */}
+      <div className="bg-white border border-rose-100/90 rounded-2xl p-2.5 text-center shadow-xs">
+        <p className="text-[11px] font-semibold text-rose-500 leading-snug">
+          {settings?.noticeText || `🎉 বন্ধু জয়েন করলেই $${(settings?.referBonusUSDT ?? 0.50).toFixed(2)} USDT বোনাস 🤖 এখনই লিংক শেয়ার করুন 👀`}
         </p>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-purple-500/20">
-          <div className="bg-slate-950/40 p-2.5 rounded-2xl border border-purple-500/20">
-            <span className="text-[10px] text-purple-200/70 block">মোট আমন্ত্রিত</span>
-            <span className="text-lg font-black text-white">{currentUser.referralCount} জন</span>
-          </div>
-          <div className="bg-slate-950/40 p-2.5 rounded-2xl border border-purple-500/20">
-            <span className="text-[10px] text-purple-200/70 block">রেফারেল থেকে আয়</span>
-            <span className="text-lg font-black text-amber-300">
-              {(currentUser.referralCount * settings.referRewardCoins).toLocaleString()} 🪙
-            </span>
-          </div>
-        </div>
       </div>
 
-      {/* Referral Code Box */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-        <label className="text-xs font-bold text-slate-300 block">
-          আপনার রেফারেল কোড (Referral Code)
-        </label>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-center tracking-widest font-black text-rose-400 text-lg select-all">
-            {currentUser.referralCode}
-          </div>
+      {/* Referral Link Card */}
+      <div className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs space-y-2.5">
+        {/* Link Input Row */}
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            readOnly
+            value={botLink}
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] text-slate-700 font-mono select-all focus:outline-none"
+          />
           <button
-            onClick={copyCode}
-            className="px-4 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+            onClick={handleCopy}
+            className="w-10 h-10 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-xl flex items-center justify-center transition active:scale-95 flex-shrink-0 shadow-xs cursor-pointer"
+            title="Copy link"
           >
-            {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedCode ? 'কপি হয়েছে' : 'কপি'}</span>
+            {copied ? <Check className="w-4 h-4 stroke-[2.5]" /> : <Copy className="w-4 h-4 stroke-[2.2]" />}
           </button>
         </div>
 
-        {/* Referral Link Box */}
-        <div className="pt-2">
-          <label className="text-xs font-bold text-slate-300 block mb-1">
-            সরাসরি রেফারেল লিংক
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={referLink}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-400 truncate"
-            />
-            <button
-              onClick={copyLink}
-              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition"
-              title="লিংক কপি করুন"
-            >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Share buttons */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <button
-            onClick={shareWhatsApp}
-            className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>হোয়াটসঅ্যাপে শেয়ার</span>
-          </button>
-          <button
-            onClick={shareTelegram}
-            className="py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition"
-          >
-            <Send className="w-4 h-4" />
-            <span>টেলিগ্রামে শেয়ার</span>
-          </button>
-        </div>
+        {/* Big Share on Telegram button */}
+        <button
+          onClick={handleShareTelegram}
+          className="w-full py-3.5 rounded-2xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-95 shadow-xs cursor-pointer"
+        >
+          <Send className="w-4 h-4 -rotate-12 translate-x-0.5" />
+          <span>Share on Telegram</span>
+        </button>
       </div>
 
-      {/* How it works */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-        <h3 className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5">
-          <Gift className="w-4 h-4 text-rose-400" />
-          <span>রেফারেল কীভাবে কাজ করে?</span>
-        </h3>
-
-        <div className="space-y-3 text-xs">
-          <div className="flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 font-bold flex items-center justify-center flex-shrink-0 text-xs">
-              ১
-            </span>
-            <div>
-              <p className="font-bold text-slate-200">লিংক বা কোড শেয়ার করুন</p>
-              <p className="text-[11px] text-slate-400">আপনার বন্ধুকে SocialCash এ আমন্ত্রণ জানান।</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center flex-shrink-0 text-xs">
-              ২
-            </span>
-            <div>
-              <p className="font-bold text-slate-200">বন্ধু অ্যাকাউন্ট খুললে</p>
-              <p className="text-[11px] text-slate-400">
-                বন্ধু সাইন-আপ করার সাথে সাথে আপনি পাবেন {settings.referRewardCoins} কয়েন।
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center flex-shrink-0 text-xs">
-              ৩
-            </span>
-            <div>
-              <p className="font-bold text-slate-200">আনলিমিটেড ক্যাশআউট</p>
-              <p className="text-[11px] text-slate-400">যেকোনো সময় কয়েনকে টাকায় রূপান্তর করে বিকাশ ও নগদে নিন।</p>
-            </div>
-          </div>
+      {/* Overview & Level Tree Card (Exact Screenshot 2) */}
+      <div className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs space-y-3">
+        {/* Tabs */}
+        <div className="flex gap-4 border-b border-slate-100 pb-1.5 text-[11px] font-black">
+          <button
+            onClick={() => setActiveTabSub('overview')}
+            className={`pb-1.5 transition ${
+              activeTabSub === 'overview'
+                ? 'text-[#f97316] border-b-2 border-[#f97316]'
+                : 'text-slate-400'
+            }`}
+          >
+            OVERVIEW
+          </button>
+          <button
+            onClick={() => setActiveTabSub('level1')}
+            className={`pb-1.5 transition ${
+              activeTabSub === 'level1'
+                ? 'text-[#f97316] border-b-2 border-[#f97316]'
+                : 'text-slate-400'
+            }`}
+          >
+            LEVEL 1 ({currentUser.totalRefer})
+          </button>
         </div>
-      </div>
 
-      {/* Recent Invited List */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-        <h4 className="text-xs font-bold text-slate-300 mb-3">সাম্প্রতিক আমন্ত্রিত বন্ধুরা</h4>
-        <div className="space-y-2">
-          {invitedList.map((item, i) => (
-            <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <div>
-                <p className="text-xs font-bold text-slate-200">{item.name}</p>
-                <span className="text-[10px] text-slate-500">{item.date}</span>
-              </div>
-              <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1">
-                <Coins className="w-3.5 h-3.5 text-amber-400" /> +{item.reward}
-              </span>
-            </div>
-          ))}
+        {/* Tree Circle */}
+        <div className="py-4 flex flex-col items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-[#f97316] text-white flex flex-col items-center justify-center font-black text-xs shadow-md">
+            <span>YOU</span>
+          </div>
+          <span className="text-[11px] text-slate-400 mt-2 font-medium">
+            লেভেল ১ সদস্য সংখ্যা: {currentUser.totalRefer} জন
+          </span>
         </div>
       </div>
     </div>
